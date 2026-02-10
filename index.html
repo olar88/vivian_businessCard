@@ -507,7 +507,7 @@
           <div class="back-content">
             <div class="contact-item">
               <span class="label">Consultation</span>
-              <span class="value clickable">vivianlee0432@gmail.com</span>
+                <a class="value clickable" href="mailto:vivianlee0432@gmail.com">vivianlee0432@gmail.com</a>
             </div>
             <div class="contact-item">
               <span class="label">Phone</span>
@@ -674,9 +674,9 @@
           const gamma = e.gamma; // 左右傾斜 (-90 到 90)
           
           if (beta !== null && gamma !== null) {
-            // 限制傾斜角度，保持溫和效果（±8度）
-            targetTiltX = Math.max(-8, Math.min(8, beta * 0.15));
-            targetTiltY = Math.max(-8, Math.min(8, -gamma * 0.2)); // 反轉 Y 軸
+            // 限制傾斜角度，調高靈敏度並保持溫和效果（±10度）
+            targetTiltX = Math.max(-10, Math.min(10, beta * 0.25));
+            targetTiltY = Math.max(-10, Math.min(10, -gamma * 0.35)); // 反轉 Y 軸
             
             // 平滑過渡，類似滑鼠移動效果
             tiltX = tiltX * 0.8 + targetTiltX * 0.2;
