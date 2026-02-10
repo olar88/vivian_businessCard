@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vivian Lee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono&family=Urbanist:wght@300;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --paper: #f1ede9;
+        --thread-dark: #90755b;
+        --thread-accent: #c4ab95;
+        --weave-opacity: 0.12;
+        --transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        background-color: #dcd7d0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family: "Urbanist", sans-serif;
+        overflow: hidden;
+      }
+
+      /* SVG Noise Filter */
+      .noise-filter {
+        position: absolute;
+        width: 0;
+        height: 0;
+      }
+
+      .scene {
+        perspective: 1500px;
+        width: 550px;
+        height: 320px;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .card {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transform-style: preserve-3d;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      /* 翻轉狀態 */
+      .scene.flipped .card {
+        transform: rotateY(180deg) scale(1.05) !important;
+      }
+
+      /* 翻轉狀態 */
+      .scene.flipped .card .back {
+        z-index: 5;
+      }
+
+      /* 點擊時的縮放效果 */
+      .scene:active .card {
+        transform: scale(0.95);
+      }
+
+      .scene.flipped:active .card {
+        transform: rotateY(180deg) scale(0.95);
+      }
+
+      .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        background-color: var(--paper);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* Textile Interweave Effect */
+      .card-face::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(139, 115, 85, 0.05) 3px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(44, 44, 44, 0.05) 3px
+          );
+        background-size: 4px 4px;
+        pointer-events: none;
+      }
+
+      .card-face::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        filter: url(#grainy);
+        opacity: 0.4;
+        mix-blend-mode: multiply;
+        pointer-events: none;
+      }
+
+      /* Front Side */
+      .front {
+        padding: 40px;
+        justify-content: space-between;
+      }
+
+      .weave-graphic {
+        position: absolute;
+        right: -20px;
+        top: -20px;
+        width: 300px;
+        height: 300px;
+        opacity: 0.8;
+      }
+
+      .weave-line {
+        fill: none;
+        stroke: var(--thread-accent);
+        stroke-width: 0.5;
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: drawLine 2s forwards ease-out;
+      }
+
+      @keyframes drawLine {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      .logo-mark {
+        font-weight: 800;
+        font-size: 2.5rem;
+        letter-spacing: -2px;
+        color: var(--thread-dark);
+        position: relative;
+        z-index: 1;
+      }
+
+      .v-offset {
+        display: inline-block;
+        transform: translateY(8px) rotate(-5deg);
+        color: var(--thread-accent);
+      }
+
+      .brand-meta {
+        z-index: 1;
+      }
+
+      .name {
+        font-size: 2.2rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        line-height: 0.9;
+        color: var(--thread-dark);
+      }
+
+      .title {
+        font-family: "Space Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        margin-top: 10px;
+        color: var(--thread-accent);
+      }
+
+      /* Back Side */
+      .back {
+        transform: rotateY(180deg);
+        padding: 40px;
+        background-color: var(--thread-dark);
+        color: var(--paper);
+      }
+
+      .back::before {
+        background:
+          repeating-linear-gradient(
+            90deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(244, 241, 234, 0.03) 3px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(244, 241, 234, 0.03) 3px
+          );
+        background-size: 5px 5px;
+      }
+
+      .back-content {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border-left: 1px solid var(--thread-accent);
+        padding-left: 30px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .contact-item {
+        margin: 12px 0;
+      }
+
+      .label {
+        font-family: "Space Mono", monospace;
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        color: var(--thread-accent);
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .value {
+        font-size: 1.1rem;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+        color: var(--paper);
+        text-decoration: none;
+      }
+
+      /* 可點擊連結樣式 */
+      .value.clickable {
+        position: relative;
+        display: inline-block;
+        color: var(--thread-accent);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 4px 12px 4px 0;
+        border-bottom: 1px solid var(--thread-accent);
+      }
+
+      .value.clickable::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background-color: var(--paper);
+        transition: width 0.3s ease;
+      }
+
+      .value.clickable:hover {
+        color: var(--paper);
+        transform: translateX(3px);
+        text-shadow: 0 0 8px rgba(241, 237, 233, 0.3);
+      }
+
+      .value.clickable:hover::after {
+        width: calc(100% - 12px);
+      }
+
+      .value.clickable:active {
+        transform: translateX(1px) scale(0.98);
+      }
+
+      /* vCard 下載樣式 */
+      .value.vcard-download {
+        position: relative;
+        display: inline-block;
+        color: var(--thread-accent);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        padding: 4px 24px 4px 0;
+        text-decoration: none;
+      }
+
+      .value.vcard-download::after {
+        content: "點擊下載聯絡人";
+        position: absolute;
+        bottom: -25px;
+        left: 0;
+        font-size: 0.5rem;
+        font-family: "Space Mono", monospace;
+        color: var(--thread-accent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .value.vcard-download:hover {
+        color: var(--paper);
+        transform: translateX(3px);
+        text-shadow: 0 0 8px rgba(241, 237, 233, 0.3);
+      }
+
+      .value.vcard-download:hover::after {
+        opacity: 1;
+      }
+
+      .value.vcard-download:active {
+        transform: translateX(1px) scale(0.98);
+      }
+
+      .accent-block {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 120px;
+        height: 120px;
+        background: var(--thread-accent);
+        clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+        opacity: 0.2;
+      }
+
+      /* Floating Reveal Animation */
+      @keyframes floatIn {
+        from {
+          opacity: 0;
+          transform: translateY(30px) rotateX(-10deg);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) rotateX(0);
+        }
+      }
+
+      .scene {
+        animation: floatIn 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+
+      /* 響應式設計 */
+      @media (max-width: 768px) {
+        body {
+          padding: 20px;
+          overflow: auto;
+        }
+
+        .scene {
+          width: 90vw;
+          max-width: 400px;
+          height: 60vw;
+          max-height: 250px;
+          min-height: 200px;
+        }
+
+        .front {
+          padding: 25px;
+        }
+
+        .back {
+          padding: 25px;
+        }
+
+        .back-content {
+          padding-left: 20px;
+        }
+
+        .logo-mark {
+          font-size: 2rem;
+        }
+
+        .name {
+          font-size: 1.6rem;
+        }
+
+        .title {
+          font-size: 0.6rem;
+          letter-spacing: 3px;
+        }
+
+        .value {
+          font-size: 0.95rem;
+        }
+
+        .label {
+          font-size: 0.55rem;
+        }
+
+        .weave-graphic {
+          width: 200px;
+          height: 200px;
+        }
+
+        /* 手機版觸控優化 */
+        .scene {
+          cursor: default;
+        }
+
+        .value.clickable,
+        .value.vcard-download {
+          padding: 2px 12px 2px 0;
+          font-size: 0.95rem;
+        }
+
+        .value.clickable img {
+          width: 20px !important;
+          margin-right: 4px !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .scene {
+          width: 95vw;
+          height: 65vw;
+          max-height: 220px;
+        }
+
+        .front, .back {
+          padding: 20px;
+        }
+
+        .logo-mark {
+          font-size: 1.8rem;
+        }
+
+        .name {
+          font-size: 1.4rem;
+        }
+
+        .title {
+          font-size: 0.55rem;
+          letter-spacing: 2px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg class="noise-filter">
+      <filter id="grainy">
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.65"
+          numOctaves="3"
+          stitchTiles="stitch"
+        />
+        <feColorMatrix type="saturate" values="0" />
+      </filter>
+    </svg>
+
+    <div class="scene">
+      <div class="card" id="card">
+        <!-- FRONT FACE -->
+        <div class="card-face front">
+          <div class="weave-graphic">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <path
+                class="weave-line"
+                d="M10,10 L190,190"
+                style="animation-delay: 0.2s"
+              />
+              <path
+                class="weave-line"
+                d="M190,10 L10,190"
+                style="animation-delay: 0.4s"
+              />
+              <path
+                class="weave-line"
+                d="M10,100 L190,100"
+                style="animation-delay: 0.6s"
+              />
+              <path
+                class="weave-line"
+                d="M100,10 L100,190"
+                style="animation-delay: 0.8s"
+              />
+              <circle
+                cx="100"
+                cy="100"
+                r="40"
+                fill="none"
+                stroke="#8b7355"
+                stroke-width="0.2"
+              />
+            </svg>
+          </div>
+
+          <div class="logo-mark">V<span class="v-offset">L</span>.</div>
+
+          <div class="brand-meta">
+            <h1 class="name">Vivian Lee</h1>
+            <p class="title">Interior Architect & Textile Specialist</p>
+          </div>
+        </div>
+
+        <!-- BACK FACE -->
+        <div class="card-face back">
+          <div class="back-content">
+            <div class="contact-item">
+              <span class="label">Consultation</span>
+              <span class="value clickable">vivianlee0432@gmail.com</span>
+            </div>
+            <div class="contact-item">
+              <span class="label">Phone</span>
+              <span class="value vcard-download" >
+                <a class="value clickable" target="_blank" id="phone-value">
+                  <img
+                    src="https://img.icons8.com/?size=100&id=Iw5aeMT37fzK&format=png&color=f1ede9"
+                    alt="Line Icon"
+                    style="
+                      width: 25px;
+                      vertical-align: middle;
+                      margin-right: 6px;
+                    "
+                  />
+                  0988750432
+                </a>
+              </span>
+            </div>
+            <div class="contact-item">
+              <span class="label">Line</span>
+              <a
+                class="value clickable"
+                href="https://line.me/ti/p/2X5mT9XsV2"
+                target="_blank"
+              >
+                <img
+                  src="https://img.icons8.com/?size=100&id=99344&format=png&color=f1ede9"
+                  alt="Line Icon"
+                  style="width: 25px; vertical-align: middle; margin-right: 6px"
+                />
+                0988750432
+              </a>
+            </div>
+          </div>
+          <div class="accent-block"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const phoneValue = document.getElementById("phone-value");
+      phoneValue.addEventListener("click", () => {
+        // 點擊後下載 vCard 檔案
+        const vCardContent = [
+          "BEGIN:VCARD",
+          "VERSION:3.0",
+          "FN:Vivian Lee",
+          "N:Lee;Vivian;;;",
+          "ORG:VL Design Studio",
+          "TITLE:Interior Architect",
+          "TEL;TYPE=CELL:+886-988-750-432",
+          "EMAIL;TYPE=WORK:vivianlee0432@gmail.com",
+          "URL:https://line.me/ti/p/2X5mT9XsV2",
+          "NOTE:專精於室內建築設計，為您打造獨特的生活空間。",
+          "END:VCARD",
+        ].join("\n");
+
+        // 創建 Blob 對象
+        const blob = new Blob([vCardContent], {
+          type: "text/vcard;charset=utf-8",
+        });
+
+        // 創建下載連結
+        const downloadLink = document.createElement("a");
+        downloadLink.classList.add("value", "clickable");
+        downloadLink.href = URL.createObjectURL(blob);
+        downloadLink.download = "Vivian_Lee_Contact.vcf";
+
+        // 觸發下載
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        // 清理 URL 對象
+        URL.revokeObjectURL(downloadLink.href);
+      });
+
+      const card = document.getElementById("card");
+      const scene = document.querySelector(".scene");
+      let isFlipped = false;
+      let isMobile = window.innerWidth <= 768;
+      let tiltX = 0;
+      let tiltY = 0;
+
+      // 檢測設備類型
+      function detectMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth <= 768;
+      }
+
+      // 檢測是否支援陀螺儀
+      function isGyroscopeSupported() {
+        return typeof window.DeviceOrientationEvent !== 'undefined' ||
+               typeof window.DeviceMotionEvent !== 'undefined';
+      }
+
+      // 檢測是否為安全環境（HTTPS 或 localhost）
+      function isSecureContext() {
+        return window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+      }
+
+      // 手機陀螺儀權限請求（iOS 13+）
+      async function requestMotionPermission() {
+        if (!isSecureContext()) {
+          console.warn('陀螺儀功能需要 HTTPS 環境');
+          return false;
+        }
+
+        // 檢查設備是否支援 DeviceOrientationEvent
+        if (typeof window.DeviceOrientationEvent === 'undefined') {
+          console.log('設備不支援 DeviceOrientationEvent');
+          return false;
+        }
+
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+          try {
+            const permission = await DeviceOrientationEvent.requestPermission();
+            if (permission === 'granted') {
+              console.log('陀螺儀權限已獲得');
+              return true;
+            } else {
+              console.log('陀螺儀權限被拒絕');
+              return false;
+            }
+          } catch (error) {
+            console.log('陀螺儀權限請求失敗:', error);
+            return false;
+          }
+        }
+        return true; // Android 或舊版 iOS
+      }
+
+      // 初始化陀螺儀功能
+      function initGyroscope() {
+        if (!isSecureContext()) {
+          console.warn('需要 HTTPS 環境才能使用陀螺儀功能');
+          return false;
+        }
+
+        if (!window.DeviceOrientationEvent) {
+          console.log('設備不支援陀螺儀');
+          return false;
+        }
+
+        // 使用 DeviceOrientationEvent
+        window.addEventListener('deviceorientation', (e) => {
+          if (isFlipped) return; // 翻轉時不應用傾斜效果
+          
+          // 獲取設備方向數據
+          const beta = e.beta;   // 前後傾斜 (-180 到 180)
+          const gamma = e.gamma; // 左右傾斜 (-90 到 90)
+          
+          if (beta !== null && gamma !== null) {
+            // 限制傾斜角度並轉換為合適的旋轉值
+            const rotateX = Math.max(-15, Math.min(15, beta * 0.3));
+            const rotateY = Math.max(-15, Math.min(15, gamma * 0.5));
+            
+            tiltX = rotateX;
+            tiltY = -rotateY; // 反轉 Y 軸讓傾斜方向更自然
+            
+            card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+          }
+        });
+
+        // 備用方案：使用 DeviceMotionEvent
+        window.addEventListener('devicemotion', (e) => {
+          if (isFlipped) return;
+          
+          const acceleration = e.accelerationIncludingGravity;
+          if (acceleration && acceleration.x !== null && acceleration.y !== null) {
+            // 使用重力加速度數據
+            const rotateY = Math.max(-15, Math.min(15, acceleration.x * 2));
+            const rotateX = Math.max(-15, Math.min(15, acceleration.y * 2));
+            
+            // 平滑過渡
+            tiltX = tiltX * 0.8 + rotateX * 0.2;
+            tiltY = tiltY * 0.8 + rotateY * 0.2;
+            
+            card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+          }
+        });
+
+        // 手機版重置傾斜（當設備回到水平位置）
+        let resetTimeout;
+        const resetTilt = () => {
+          clearTimeout(resetTimeout);
+          resetTimeout = setTimeout(() => {
+            if (!isFlipped) {
+              tiltX = tiltX * 0.95;
+              tiltY = tiltY * 0.95;
+              if (Math.abs(tiltX) < 0.1 && Math.abs(tiltY) < 0.1) {
+                card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+                tiltX = 0;
+                tiltY = 0;
+              } else {
+                card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+              }
+            }
+          }, 100);
+        };
+
+        window.addEventListener('deviceorientation', resetTilt);
+        
+        return true;
+      }
+
+      // 點擊翻轉功能
+      scene.addEventListener("click", async (e) => {
+        // 如果點擊的是連結或 vCard 下載，不要翻轉卡片
+        if (
+          e.target.classList.contains("clickable") ||
+          e.target.classList.contains("vcard-download")
+        ) {
+          return;
+        }
+
+        // 在手機上第一次點擊時請求陀螺儀權限並初始化
+        if (detectMobile() && !isFlipped && isGyroscopeSupported()) {
+          try {
+            const hasPermission = await requestMotionPermission();
+            if (hasPermission) {
+              initGyroscope();
+            } else {
+              // 顯示提示訊息
+              if (!isSecureContext()) {
+                showHttpsNotice();
+              }
+              console.log('提示：需要 HTTPS 環境和陀螺儀權限才能享受 3D 晃動效果');
+            }
+          } catch (error) {
+            console.log('陀螺儀初始化失敗:', error);
+            // 在桌面環境或不支援的設備上靜默處理錯誤
+          }
+        } else if (detectMobile() && !isFlipped && !isGyroscopeSupported()) {
+          console.log('設備不支援陀螺儀功能');
+        }
+
+        isFlipped = !isFlipped;
+        scene.classList.toggle("flipped", isFlipped);
+      });
+
+      // 防止連結和 vCard 的點擊事件冒泡導致卡片翻轉
+      const clickableLinks = document.querySelectorAll(
+        ".value.clickable, .value.vcard-download",
+      );
+      clickableLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.stopPropagation();
+        });
+      });
+
+      // 桌面版滑鼠移動的微妙 3D 傾斜效果
+      if (!detectMobile()) {
+        scene.addEventListener("mousemove", (e) => {
+          if (isFlipped) return; // 翻轉時不應用傾斜效果
+          
+          const rect = scene.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          const rotateX = (y - centerY) / 15;
+          const rotateY = (centerX - x) / 15;
+
+          card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        scene.addEventListener("mouseleave", () => {
+          if (!isFlipped) {
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+          }
+        });
+      } else {
+        console.log( detectMobile() ? '移動設備已檢測' : '桌面設備已檢測', 
+                     isGyroscopeSupported() ? '陀螺儀支援可用' : '陀螺儀不支援' );
+      }
+
+      // 響應式調整
+      window.addEventListener('resize', () => {
+        isMobile = window.innerWidth <= 768;
+      });
+    </script>
+  </body>
+</html>
