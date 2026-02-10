@@ -588,6 +588,7 @@
       const card = document.getElementById("card");
       const scene = document.querySelector(".scene");
       let isFlipped = false;
+      let isFlipping = false; // 追蹤翻轉動畫是否進行中
       let isMobile = window.innerWidth <= 768;
       let tiltX = 0;
       let tiltY = 0;
@@ -659,7 +660,8 @@
 
         // 使用 DeviceOrientationEvent - 直接且穩定，效果同桌面版滑鼠傾斜
         const handleDeviceOrientation = (e) => {
-          if (isFlipped) return;
+          // 翻轉過程中禁用傾斜效果，避免卡頓
+          if (isFlipped || isFlipping) return;
           
           const beta = e.beta;   // 前後傾斜 (-180 到 180)
           const gamma = e.gamma; // 左右傾斜 (-90 到 90)
@@ -679,7 +681,7 @@
             
             // 停止傾斜 600ms 後，緩慢回到原位
             resetTimeout = setTimeout(() => {
-              if (!isFlipped) {
+              if (!isFlipped && !isFlipping) {
                 // 緩慢衰減回到 0
                 let decayCount = 0;
                 const decayInterval = setInterval(() => {
@@ -738,8 +740,15 @@
           console.log('設備不支援陀螺儀功能');
         }
 
+        // 設置翻轉狀態標誌
+        isFlipping = true;
         isFlipped = !isFlipped;
         scene.classList.toggle("flipped", isFlipped);
+        
+        // 0.8秒後（CSS transition 完成）清除翻轉狀態
+        setTimeout(() => {
+          isFlipping = false;
+        }, 800);
       });
 
       // 防止連結和 vCard 的點擊事件冒泡導致卡片翻轉
