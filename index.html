@@ -589,6 +589,7 @@
       const scene = document.querySelector(".scene");
       let isFlipped = false;
       let isFlipping = false; // 追蹤翻轉動畫是否進行中
+      let gyroscopeInitialized = false; // 追蹤陀螺儀是否已初始化
       let isMobile = window.innerWidth <= 768;
       let tiltX = 0;
       let tiltY = 0;
@@ -654,14 +655,20 @@
           return false;
         }
 
+        // 避免重複初始化
+        if (gyroscopeInitialized) {
+          return true;
+        }
+
         let resetTimeout;
         let targetTiltX = 0;
         let targetTiltY = 0;
+        let gyroscopeEnabled = false; // 控制陀螺儀是否真正生效
 
         // 使用 DeviceOrientationEvent - 直接且穩定，效果同桌面版滑鼠傾斜
         const handleDeviceOrientation = (e) => {
-          // 翻轉過程中禁用傾斜效果，避免卡頓
-          if (isFlipped || isFlipping) return;
+          // 多重檢查確保不在翻轉期間執行
+          if (isFlipped || isFlipping || !gyroscopeEnabled) return;
           
           const beta = e.beta;   // 前後傾斜 (-180 到 180)
           const gamma = e.gamma; // 左右傾斜 (-90 到 90)
@@ -681,7 +688,7 @@
             
             // 停止傾斜 600ms 後，緩慢回到原位
             resetTimeout = setTimeout(() => {
-              if (!isFlipped && !isFlipping) {
+              if (!isFlipped && !isFlipping && gyroscopeEnabled) {
                 // 緩慢衰減回到 0
                 let decayCount = 0;
                 const decayInterval = setInterval(() => {
@@ -704,9 +711,30 @@
           }
         };
 
+        // 陀螺儀啟用/禁用控制函數
+        window.enableGyroscope = () => {
+          gyroscopeEnabled = true;
+        };
+
+        window.disableGyroscope = () => {
+          gyroscopeEnabled = false;
+          // 立即重置傾斜
+          tiltX = 0;
+          tiltY = 0;
+          if (!isFlipped) {
+            card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+          }
+        };
+
         window.addEventListener('deviceorientation', handleDeviceOrientation);
+        gyroscopeInitialized = true;
         
         return true;
+      }
+
+      // 顯示 HTTPS 提示
+      function showHttpsNotice() {
+        console.log('提示：需要 HTTPS 環境才能體驗陀螺儀 3D 效果');
       }
 
       // 點擊翻轉功能
@@ -719,8 +747,16 @@
           return;
         }
 
+        // 如果正在翻轉中，忽略點擊
+        if (isFlipping) return;
+
+        // 立即禁用陀螺儀，避免翻轉動畫期間的干擾
+        if (gyroscopeInitialized && window.disableGyroscope) {
+          window.disableGyroscope();
+        }
+
         // 在手機上第一次點擊時請求陀螺儀權限並初始化
-        if (detectMobile() && !isFlipped && isGyroscopeSupported()) {
+        if (detectMobile() && !isFlipped && isGyroscopeSupported() && !gyroscopeInitialized) {
           try {
             const hasPermission = await requestMotionPermission();
             if (hasPermission) {
@@ -745,9 +781,16 @@
         isFlipped = !isFlipped;
         scene.classList.toggle("flipped", isFlipped);
         
-        // 0.8秒後（CSS transition 完成）清除翻轉狀態
+        // 1200ms 後（確保 CSS transition 完全完成後）重新啟用陀螺儀和清除翻轉狀態
         setTimeout(() => {
           isFlipping = false;
+          // 如果翻轉到正面且陀螺儀已初始化，重新啟用陀螺儀
+          if (!isFlipped && gyroscopeInitialized && window.enableGyroscope) {
+            // 額外延遲 300ms 確保翻轉動畫視覺效果完全穩定
+            setTimeout(() => {
+              window.enableGyroscope();
+            }, 300);
+          }
         }, 800);
       });
 
@@ -787,6 +830,15 @@
       } else {
         console.log( detectMobile() ? '移動設備已檢測' : '桌面設備已檢測', 
                      isGyroscopeSupported() ? '陀螺儀支援可用' : '陀螺儀不支援' );
+        
+        // 移動設備自動初始化陀螺儀
+        if (detectMobile() && isSecureContext() && isGyroscopeSupported()) {
+          setTimeout(() => {
+            initGyroscope();
+          }, 1000);
+        } else if (detectMobile() && !isSecureContext()) {
+          showHttpsNotice();
+        }
       }
 
       // 響應式調整
