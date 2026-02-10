@@ -653,64 +653,55 @@
           return false;
         }
 
-        // 使用 DeviceOrientationEvent
-        window.addEventListener('deviceorientation', (e) => {
-          if (isFlipped) return; // 翻轉時不應用傾斜效果
+        let lastAlpha = 0;
+        let resetTimeout;
+        let isMoving = false;
+
+        // 使用 DeviceOrientationEvent - 直接且穩定
+        const handleDeviceOrientation = (e) => {
+          if (isFlipped) return;
           
-          // 獲取設備方向數據
           const beta = e.beta;   // 前後傾斜 (-180 到 180)
           const gamma = e.gamma; // 左右傾斜 (-90 到 90)
           
           if (beta !== null && gamma !== null) {
             // 限制傾斜角度並轉換為合適的旋轉值
-            const rotateX = Math.max(-15, Math.min(15, beta * 0.3));
-            const rotateY = Math.max(-15, Math.min(15, gamma * 0.5));
+            tiltX = Math.max(-15, Math.min(15, beta * 0.3));
+            tiltY = Math.max(-15, Math.min(15, -gamma * 0.5)); // 反轉 Y 軸
             
-            tiltX = rotateX;
-            tiltY = -rotateY; // 反轉 Y 軸讓傾斜方向更自然
-            
+            // 平滑應用變換
             card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-          }
-        });
-
-        // 備用方案：使用 DeviceMotionEvent
-        window.addEventListener('devicemotion', (e) => {
-          if (isFlipped) return;
-          
-          const acceleration = e.accelerationIncludingGravity;
-          if (acceleration && acceleration.x !== null && acceleration.y !== null) {
-            // 使用重力加速度數據
-            const rotateY = Math.max(-15, Math.min(15, acceleration.x * 2));
-            const rotateX = Math.max(-15, Math.min(15, acceleration.y * 2));
             
-            // 平滑過渡
-            tiltX = tiltX * 0.8 + rotateX * 0.2;
-            tiltY = tiltY * 0.8 + rotateY * 0.2;
+            isMoving = true;
+            clearTimeout(resetTimeout);
             
-            card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
-          }
-        });
-
-        // 手機版重置傾斜（當設備回到水平位置）
-        let resetTimeout;
-        const resetTilt = () => {
-          clearTimeout(resetTimeout);
-          resetTimeout = setTimeout(() => {
-            if (!isFlipped) {
-              tiltX = tiltX * 0.95;
-              tiltY = tiltY * 0.95;
-              if (Math.abs(tiltX) < 0.1 && Math.abs(tiltY) < 0.1) {
-                card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-                tiltX = 0;
-                tiltY = 0;
-              } else {
-                card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+            // 快速重置：停止傾斜 500ms 後立即恢復原位
+            resetTimeout = setTimeout(() => {
+              if (!isFlipped && isMoving) {
+                // 快速衰減，避免重影
+                let decayCount = 0;
+                const decayInterval = setInterval(() => {
+                  decayCount++;
+                  const factor = Math.max(0, 1 - decayCount * 0.25);
+                  tiltX *= factor;
+                  tiltY *= factor;
+                  
+                  if (Math.abs(tiltX) < 0.01 && Math.abs(tiltY) < 0.01) {
+                    card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+                    tiltX = 0;
+                    tiltY = 0;
+                    isMoving = false;
+                    clearInterval(decayInterval);
+                  } else {
+                    card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+                  }
+                }, 16); // ~60fps
               }
-            }
-          }, 100);
+            }, 500);
+          }
         };
 
-        window.addEventListener('deviceorientation', resetTilt);
+        window.addEventListener('deviceorientation', handleDeviceOrientation);
         
         return true;
       }
