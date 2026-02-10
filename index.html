@@ -653,11 +653,11 @@
           return false;
         }
 
-        let lastAlpha = 0;
         let resetTimeout;
-        let isMoving = false;
+        let targetTiltX = 0;
+        let targetTiltY = 0;
 
-        // 使用 DeviceOrientationEvent - 直接且穩定
+        // 使用 DeviceOrientationEvent - 直接且穩定，效果同桌面版滑鼠傾斜
         const handleDeviceOrientation = (e) => {
           if (isFlipped) return;
           
@@ -665,39 +665,40 @@
           const gamma = e.gamma; // 左右傾斜 (-90 到 90)
           
           if (beta !== null && gamma !== null) {
-            // 限制傾斜角度並轉換為合適的旋轉值
-            tiltX = Math.max(-15, Math.min(15, beta * 0.3));
-            tiltY = Math.max(-15, Math.min(15, -gamma * 0.5)); // 反轉 Y 軸
+            // 限制傾斜角度，保持溫和效果（±8度）
+            targetTiltX = Math.max(-8, Math.min(8, beta * 0.15));
+            targetTiltY = Math.max(-8, Math.min(8, -gamma * 0.2)); // 反轉 Y 軸
             
-            // 平滑應用變換
+            // 平滑過渡，類似滑鼠移動效果
+            tiltX = tiltX * 0.8 + targetTiltX * 0.2;
+            tiltY = tiltY * 0.8 + targetTiltY * 0.2;
+            
             card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
             
-            isMoving = true;
             clearTimeout(resetTimeout);
             
-            // 快速重置：停止傾斜 500ms 後立即恢復原位
+            // 停止傾斜 600ms 後，緩慢回到原位
             resetTimeout = setTimeout(() => {
-              if (!isFlipped && isMoving) {
-                // 快速衰減，避免重影
+              if (!isFlipped) {
+                // 緩慢衰減回到 0
                 let decayCount = 0;
                 const decayInterval = setInterval(() => {
                   decayCount++;
-                  const factor = Math.max(0, 1 - decayCount * 0.25);
-                  tiltX *= factor;
-                  tiltY *= factor;
+                  const factor = Math.max(0, 1 - decayCount * 0.1);
+                  tiltX = tiltX * factor;
+                  tiltY = tiltY * factor;
                   
-                  if (Math.abs(tiltX) < 0.01 && Math.abs(tiltY) < 0.01) {
+                  if (Math.abs(tiltX) < 0.05 && Math.abs(tiltY) < 0.05) {
                     card.style.transform = `rotateX(0deg) rotateY(0deg)`;
                     tiltX = 0;
                     tiltY = 0;
-                    isMoving = false;
                     clearInterval(decayInterval);
                   } else {
                     card.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
                   }
                 }, 16); // ~60fps
               }
-            }, 500);
+            }, 600);
           }
         };
 
